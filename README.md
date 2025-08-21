@@ -24,7 +24,7 @@ use Arthur2weber\QueryCraft\ElasticQuery;
 
 // Simple search with filters
 $query = new ElasticQuery();
-$result = $query
+$dslQuery = $query
     ->search('PHP Elasticsearch', ['title^3', 'content'])
     ->filter('status', 'published')
     ->range('created_at', 'gte', '2024-01-01')
@@ -35,7 +35,7 @@ $result = $query
 // Ready for Elasticsearch PHP Client
 $response = $client->search([
     'index' => 'articles',
-    'body' => $result
+    'body' => $dslQuery
 ]);
 ```
 
