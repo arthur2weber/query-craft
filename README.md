@@ -57,19 +57,21 @@ Use the exact same methods you love:
 
 ```php
 // ✅ Your familiar Eloquent syntax
-$users = User::where('status', 'active')
-            ->whereIn('role', ['admin', 'editor'])
-            ->whereBetween('created_at', [$start, $end])
-            ->orderByDesc('created_at')
-            ->paginate(15);
+$usersQuery = User::where('status', 'active')
+                ->whereIn('role', ['admin', 'editor'])
+                ->whereBetween('created_at', [$start, $end])
+                ->orderByDesc('created_at')
+                ->paginate(15)
+                ->toSql();
 
 // ✅ Identical QueryCraft syntax
-$docs = (new ElasticQuery())
-       ->where('status', 'active')
-       ->whereIn('role', ['admin', 'editor'])
-       ->whereBetween('created_at', [$start, $end])
-       ->orderByDesc('created_at')
-       ->paginate(15);
+$usersQuery = (new ElasticQuery())
+               ->where('status', 'active')
+               ->whereIn('role', ['admin', 'editor'])
+               ->whereBetween('created_at', [$start, $end])
+               ->orderByDesc('created_at')
+               ->paginate(15)
+               ->build();
 ```
 
 **Everything works exactly as expected:**
