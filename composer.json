@@ -1,0 +1,54 @@
+{
+    "name": "arthur2weber/query-craft",
+    "description": "Craft elegant DSL queries with fluent, Eloquent-inspired syntax for Elasticsearch, MongoDB, and GraphQL. Build powerful search queries with familiar Laravel-like syntax.",
+    "type": "library",
+    "keywords": [
+        "query-craft",
+        "dsl",
+        "query-builder",
+        "eloquent-inspired",
+        "fluent-interface",
+        "elasticsearch",
+        "mongodb",
+        "graphql",
+        "laravel-syntax",
+        "search",
+        "php"
+    ],
+    "homepage": "https://github.com/arthur2weber/query-craft",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Arthur Weber",
+            "email": "arthur2weber@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Arthur2weber\\QueryCraft\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Arthur2weber\\QueryCraft\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "examples": "php examples/run-all.php"
+    },
+    "support": {
+        "issues": "https://github.com/arthur2weber/query-craft/issues",
+        "source": "https://github.com/arthur2weber/query-craft"
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/arthur2weber"
+        }
+    ]
+}

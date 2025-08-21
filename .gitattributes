@@ -1,0 +1,42 @@
+# Git attributes for QueryCraft
+
+# Documentation
+*.md linguist-documentation
+docs/* linguist-documentation
+
+# Examples should be treated as documentation
+examples/* linguist-documentation
+
+# Tests should not be included in language statistics
+tests/* linguist-detectable=false
+
+# Ensure proper line endings
+* text=auto eol=lf
+
+# PHP files
+*.php text eol=lf
+
+# JSON files
+*.json text eol=lf
+
+# Composer
+composer.lock -diff
+
+# IDE files
+.vscode/* export-ignore
+.idea/* export-ignore
+
+# OS files
+.DS_Store export-ignore
+Thumbs.db export-ignore
+
+# Development files
+.env export-ignore
+.env.* export-ignore
+
+# Archive excludes (for distribution)
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/tests export-ignore
+/docs export-ignore
+/examples export-ignore

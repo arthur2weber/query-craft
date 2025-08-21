@@ -1,0 +1,51 @@
+# Dependências
+/vendor/
+composer.lock
+
+# IDEs e editores
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PhpStorm / IntelliJ
+.idea/
+*.iml
+*.sublime-*
+*.swp
+*.swo
+*~
+*.elc
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Ambiente e configuração
+.env*
+/config/*.php
+
+# Logs e arquivos temporários
+*.log
+/cache/
+/tmp/
+/tests/tmp/
+/tests/cache/
+
+# Testes e cobertura
+/phpunit.xml
+/.phpunit.result.cache
+/test-results/
+/coverage/
+*.lcov
+
+# Arquivos sensíveis e backups
+*.key
+*.pem
+*.crt
+*.db
+*.bak
+*.old
+*.orig

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Test Rápido - QueryCraft
+
+CATEGORY=${1:-quick}
+
+echo "🚀 QueryCraft - Teste ($CATEGORY)"
+php t.php "$CATEGORY"
