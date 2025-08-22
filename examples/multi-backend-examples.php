@@ -7,11 +7,7 @@
  * using the same familiar Eloquent-like syntax.
  */
 
-require_once __DIR__ . '/../src/Query/BaseQuery.php';
-require_once __DIR__ . '/../src/Query/MongoQuery.php';
-require_once __DIR__ . '/../src/Query/GraphQuery.php';
-require_once __DIR__ . '/../src/Query/ElasticQuery.php';
-require_once __DIR__ . '/../src/QueryCraft.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 use Arthur2weber\QueryCraft\QueryCraft;
 

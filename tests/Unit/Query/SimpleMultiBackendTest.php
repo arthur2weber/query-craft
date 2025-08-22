@@ -3,7 +3,7 @@
  * Simple Multi-Backend Test
  */
 
-require_once __DIR__ . '/../../../src/QueryCraft.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 require_once __DIR__ . '/../../TestHelpers.php';
 
 use Arthur2weber\QueryCraft\QueryCraft;

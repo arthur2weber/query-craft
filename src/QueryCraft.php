@@ -2,13 +2,6 @@
 
 namespace Arthur2weber\QueryCraft;
 
-// Load the required classes
-require_once __DIR__ . '/ElasticQueryInterface.php';
-require_once __DIR__ . '/Query/BaseQuery.php';
-require_once __DIR__ . '/Query/ElasticQuery.php';
-require_once __DIR__ . '/Query/MongoQuery.php';
-require_once __DIR__ . '/Query/GraphQuery.php';
-
 use Arthur2weber\QueryCraft\Query\ElasticQuery;
 use Arthur2weber\QueryCraft\Query\MongoQuery;
 use Arthur2weber\QueryCraft\Query\GraphQuery;
