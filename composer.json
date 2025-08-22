@@ -1,10 +1,11 @@
 {
     "name": "arthur2weber/query-craft",
-    "description": "Craft elegant DSL queries with fluent, Eloquent-inspired syntax for Elasticsearch, MongoDB, and GraphQL. Build powerful search queries with familiar Laravel-like syntax.",
+    "description": "Universal Query DSL - Eloquent-inspired syntax for Elasticsearch, MongoDB, and GraphQL. Build powerful search queries with familiar Laravel-like syntax across multiple backends.",
     "type": "library",
     "keywords": [
         "query-craft",
-        "dsl",
+        "universal-dsl",
+        "multi-backend",
         "query-builder",
         "eloquent-inspired",
         "fluent-interface",

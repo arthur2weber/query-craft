@@ -10,41 +10,44 @@ $cat = isset($argv[1]) ? $argv[1] : 'quick';
 // Configuração dos testes
 $testDefinitions = [
     'quick' => [
-        'tests/Unit/Core/BasicQueryTest.php',
-        'tests/Unit/Search/TextSearchTest.php'
+        'tests/Unit/Elasticsearch/Core/BasicQueryTest.php',
+        'tests/Unit/Elasticsearch/Search/TextSearchTest.php'
     ],
     'core' => [
-        'tests/Unit/Core/BasicQueryTest.php',
-        'tests/Unit/Core/BooleanQueryTest.php',
-        'tests/Unit/Core/NestedQueryTest.php',
-        'tests/Unit/Core/StaticClauseTest.php',
-        'tests/Unit/Core/DeveloperExperienceTest.php'
+        'tests/Unit/Elasticsearch/Core/BasicQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/BooleanQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/NestedQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/StaticClauseTest.php',
+        'tests/Unit/Elasticsearch/Core/DeveloperExperienceTest.php'
     ],
     'search' => [
-        'tests/Unit/Search/TextSearchTest.php',
-        'tests/Unit/Search/FuzzyWildcardTest.php'
+        'tests/Unit/Elasticsearch/Search/TextSearchTest.php',
+        'tests/Unit/Elasticsearch/Search/FuzzyWildcardTest.php'
     ],
     'filters' => [
-        'tests/Unit/Filters/RangeTermTest.php',
-        'tests/Unit/Filters/WhereClauseTest.php'
+        'tests/Unit/Elasticsearch/Filters/RangeTermTest.php',
+        'tests/Unit/Elasticsearch/Filters/WhereClauseTest.php'
     ],
     'utilities' => [
-        'tests/Unit/Utilities/UtilityMethodsTest.php'
+        'tests/Unit/Elasticsearch/Utilities/UtilityMethodsTest.php'
     ],
     'aggregations' => [
-        'tests/Unit/Aggregations/AggregationTest.php'
+        'tests/Unit/Elasticsearch/Aggregations/AggregationTest.php'
     ],
     'geographic' => [
-        'tests/Unit/Geographic/GeographicTest.php'
+        'tests/Unit/Elasticsearch/Geographic/GeographicTest.php'
     ],
     'sorting' => [
-        'tests/Unit/Sorting/SortingTest.php'
+        'tests/Unit/Elasticsearch/Sorting/SortingTest.php'
     ],
     'validation' => [
-        'tests/Unit/Validation/ComprehensiveValidationTest.php'
+        'tests/Unit/Elasticsearch/Validation/ComprehensiveValidationTest.php'
     ],
     'dx' => [
-        'tests/Unit/Core/DeveloperExperienceTest.php'
+        'tests/Unit/Elasticsearch/Core/DeveloperExperienceTest.php'
+    ],
+    'multibackend' => [
+        'tests/Unit/Query/MultiBackendTest.php'
     ]
 ];
 

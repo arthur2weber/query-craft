@@ -11,8 +11,8 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Aggregations
  */
 
-require_once __DIR__ . '/../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../../src/ElasticQueryInterface.php';
+require_once __DIR__ . '/../../../../src/ElasticQuery.php';
 
 use Arthur2weber\QueryCraft\ElasticQuery;
 
