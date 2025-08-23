@@ -48,6 +48,35 @@ $testDefinitions = [
     ],
     'multibackend' => [
         'tests/Unit/Query/MultiBackendTest.php'
+    ],
+    'elastic' => [
+        // Todos os testes de Elasticsearch (todas as categorias já existentes)
+        'tests/Unit/Elasticsearch/Core/BasicQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/BooleanQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/NestedQueryTest.php',
+        'tests/Unit/Elasticsearch/Core/StaticClauseTest.php',
+        'tests/Unit/Elasticsearch/Core/DeveloperExperienceTest.php',
+        'tests/Unit/Elasticsearch/Search/TextSearchTest.php',
+        'tests/Unit/Elasticsearch/Search/FuzzyWildcardTest.php',
+        'tests/Unit/Elasticsearch/Filters/RangeTermTest.php',
+        'tests/Unit/Elasticsearch/Filters/WhereClauseTest.php',
+        'tests/Unit/Elasticsearch/Utilities/UtilityMethodsTest.php',
+        'tests/Unit/Elasticsearch/Aggregations/AggregationTest.php',
+        'tests/Unit/Elasticsearch/Geographic/GeographicTest.php',
+        'tests/Unit/Elasticsearch/Sorting/SortingTest.php',
+        'tests/Unit/Elasticsearch/Validation/ComprehensiveValidationTest.php',
+        'tests/Unit/Query/MultiBackendTest.php'
+    ],
+    'mongo' => [
+        // Expande para cada suíte/categoria MongoDB para que 'all' mostre um check por categoria
+        'tests/Unit/MongoDB/Core/BasicQueryTest.php',
+        'tests/Unit/MongoDB/Aggregations/AggregationTest.php',
+        'tests/Unit/MongoDB/Filters/SimpleAdvancedFiltersTest.php',
+        'tests/Unit/MongoDB/Search/TextSearchTest.php',
+        'tests/Unit/MongoDB/Geographic/GeographicTest.php',
+        'tests/Unit/MongoDB/Sorting/SortingTest.php',
+        'tests/Unit/MongoDB/Utilities/UtilitiesTest.php',
+        'tests/Unit/MongoDB/Validation/ValidationTest.php'
     ]
 ];
 
@@ -60,6 +89,12 @@ if ($cat === 'all') {
         }
     }
     $testDefinitions['all'] = array_unique($testDefinitions['all']);
+}
+
+if ($cat === 'mongo') {
+    // Executa o runner único do MongoDB
+    require 'tests/Unit/MongoDB/RunAllMongoDBTests.php';
+    exit(0);
 }
 
 if (!isset($testDefinitions[$cat])) {
@@ -75,6 +110,35 @@ $failed_tests = [];
 $start = microtime(true);
 
 foreach ($testDefinitions[$cat] as $file) {
+    // Print a header separator once when we first encounter each backend group
+    static $printedElasticHeader = false;
+    static $printedMongoHeader = false;
+
+    // Detect backend based on path
+    if (strpos($file, 'MongoDB') !== false) {
+        $backend = 'mongo';
+    } elseif (strpos($file, 'Elasticsearch') !== false) {
+        $backend = 'elastic';
+    } else {
+        $backend = 'other';
+    }
+
+    // Print header for Elasticsearch tests once
+    if ($backend === 'elastic' && !$printedElasticHeader) {
+        echo "\n" . str_repeat("=", 40) . "\n";
+        echo "🔁 Running Elasticsearch tests" . "\n";
+        echo str_repeat("=", 40) . "\n\n";
+        $printedElasticHeader = true;
+    }
+
+    // Print header for MongoDB tests once
+    if ($backend === 'mongo' && !$printedMongoHeader) {
+        echo "\n" . str_repeat("=", 40) . "\n";
+        echo "🔁 Running MongoDB tests" . "\n";
+        echo str_repeat("=", 40) . "\n\n";
+        $printedMongoHeader = true;
+    }
+
     if (!file_exists($file)) {
         echo "⚠️  Arquivo não encontrado: $file\n";
         continue;

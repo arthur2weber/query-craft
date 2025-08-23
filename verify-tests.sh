@@ -35,6 +35,7 @@ files=(
     "src/QueryCraft.php"
     "src/Query/BaseQuery.php"
     "src/Query/ElasticQuery.php"
+    "src/ElasticQuery.php"
     "src/Query/MongoQuery.php"
     "src/Query/GraphQuery.php"
     "tests/Unit/Query/MultiBackendTest.php"

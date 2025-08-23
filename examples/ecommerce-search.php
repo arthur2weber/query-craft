@@ -18,7 +18,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
 echo "🛒 E-commerce Product Search Example\n";
 echo str_repeat("=", 50) . "\n\n";

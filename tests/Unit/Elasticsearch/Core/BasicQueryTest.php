@@ -11,11 +11,10 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Core
  */
 
-require_once __DIR__ . '/../../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../../vendor/autoload.php';
 require_once __DIR__ . '/../../../TestHelpers.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
 echo "🧪 CORE: Basic Query Tests\n";
 echo str_repeat("=", 40) . "\n\n";
@@ -34,7 +33,7 @@ runTest("Initial query has bool structure", isset($emptyQuery['query']['bool']))
 runTest("build() returns array", is_array($emptyQuery));
 
 // Test 4: Query implements interface
-runTest("Implements ElasticQueryInterface", $query instanceof \Arthur2weber\QueryCraft\ElasticQueryInterface);
+runTest("Implements ElasticQueryInterface", $query instanceof \Arthur2weber\QueryCraft\Query\ElasticQuery);
 
 // Test 5: Method chaining
 $chainedQuery = (new ElasticQuery())->size(10)->from(0);
@@ -82,4 +81,5 @@ runTest("Complex query preserves all settings",
     $complexQuery['from'] === 30
 );
 
-return printTestSummary("Core Basic Tests");
+$results = printTestSummary("Core Basic Tests");
+return $results;

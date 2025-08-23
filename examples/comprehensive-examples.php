@@ -11,7 +11,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
 echo "================================================================================\n";
 echo "🌟 QUERYCRAFT - COMPREHENSIVE EXAMPLES\n";

@@ -10,12 +10,10 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Query
  */
 
-// Use the old working ElasticQuery for now
-require_once __DIR__ . '/../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 require_once __DIR__ . '/../../TestHelpers.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery as ElasticQuery;
 
 echo "🧪 MULTI-BACKEND: Architecture Tests\n";
 echo str_repeat("=", 50) . "\n\n";
@@ -85,8 +83,7 @@ try {
         ->where('status', 'published')
         ->whereBetween('created_at', ['2024-01-01', '2024-12-31'])
         ->orderByDesc('_score')
-        ->paginate(15)
-        ->build();
+        ->paginate(15);
     runTest("Complex Elasticsearch query still works", is_array($complexResult));
 } catch (Exception $e) {
     runTest("Complex Elasticsearch query still works", false);

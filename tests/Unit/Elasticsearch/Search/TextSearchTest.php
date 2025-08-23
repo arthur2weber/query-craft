@@ -14,11 +14,10 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Search
  */
 
-require_once __DIR__ . '/../../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../../vendor/autoload.php';
 require_once __DIR__ . '/../../../TestHelpers.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
 echo "🧪 SEARCH: Text Search Tests\n";
 echo str_repeat("=", 40) . "\n\n";

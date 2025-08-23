@@ -29,12 +29,20 @@ abstract class BaseQuery
     protected array $performanceWarnings = [];
 
     /**
-     * Set the collection/index/table to query from
+     * Set the collection/index/table to query from OR set the offset for backends that use numeric "from".
+     * Accepts either a string (collection/index name) or an int (offset).
      */
-    public function from(string $collection): static
+    public function from(string|int $collection): static
     {
-        $this->from = $collection;
-        $this->logOperation('from', ['collection' => $collection]);
+        if (is_int($collection)) {
+            // numeric 'from' used by backends like Elasticsearch
+            $this->offsetValue = $collection;
+            $this->logOperation('from', ['offset' => $collection]);
+            return $this;
+        }
+
+        $this->from = (string) $collection;
+        $this->logOperation('from', ['collection' => (string) $collection]);
         return $this;
     }
 
@@ -468,10 +476,14 @@ abstract class BaseQuery
         }
     }
 
-    // Abstract methods that each implementation must provide
+    /**
+     * Abstract methods that each implementation must provide.
+     * Signatures are kept intentionally permissive to allow backend-specific
+     * implementations while providing a common contract for consumers.
+     */
     abstract public function get(): array;
-    abstract public function first(): ?array;
+    abstract public function first(): mixed;
     abstract public function count(): int;
-    abstract public function paginate(int $perPage = 15): array;
+    abstract public function paginate(int $perPage = 15, int $page = 1): array;
     abstract public function toQuery(): mixed;
 }

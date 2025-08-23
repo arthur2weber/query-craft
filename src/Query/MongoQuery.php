@@ -18,17 +18,25 @@ class MongoQuery extends BaseQuery
     protected array $pipeline = [];
     protected array $aggregationPipeline = [];
     protected bool $useAggregation = false;
+    protected bool $analyzed = false;
+    protected bool $cacheEnabled = false;
+    protected array $highlightFields = [];
+    protected ?int $timeoutMs = null;
 
     /**
      * Implementation of the get method from BaseQuery
      */
     public function get(): array
     {
-        $pipeline = $this->buildMongoPipeline();
-        
-        // In a real implementation, this would use MongoDB client
-        // For now, return the pipeline for demonstration
-        return $pipeline;
+        // Decide whether to return a find-style query or an aggregation pipeline
+        // build() will return the appropriate representation depending on whether
+        // aggregation stages were added. This preserves backwards compatibility
+        // with tests that expect the find-format for simple queries.
+        // Use the standardized internal buildQuery() adapter so both backends
+        // expose the same protected method name (ElasticQuery already has
+        // buildQuery()). buildQuery() delegates to the existing public build()
+        // to preserve current behaviour.
+        return $this->buildQuery();
     }
 
     /**
@@ -57,12 +65,13 @@ class MongoQuery extends BaseQuery
     /**
      * Implementation of the paginate method from BaseQuery
      */
-    public function paginate(int $perPage = 15): array
+    public function paginate(int $perPage = 15, int $page = 1): array
     {
         $total = $this->count();
-        $currentPage = (int) (($this->offsetValue ?? 0) / $perPage) + 1;
+        $currentPage = $page;
         
         $this->take($perPage);
+        $this->offset(($currentPage - 1) * $perPage);
         $results = $this->get();
 
         return [
@@ -81,7 +90,11 @@ class MongoQuery extends BaseQuery
      */
     public function toQuery(): array
     {
-        return $this->buildMongoPipeline();
+        // Use build() to return either the find-format (filter/options)
+        // or the aggregation pipeline depending on the query contents.
+        // Prefer the standardized internal buildQuery() adapter for parity
+        // with ElasticQuery.
+        return $this->buildQuery();
     }
 
     // MongoDB-specific methods
@@ -117,8 +130,10 @@ class MongoQuery extends BaseQuery
     public function unwind(string $field): static
     {
         $this->useAggregation = true;
+        $fieldName = str_starts_with($field, '$') ? $field : '$' . $field;
+        
         $this->aggregationPipeline[] = [
-            '$unwind' => $field
+            '$unwind' => $fieldName
         ];
 
         $this->logOperation('unwind', ['field' => $field]);
@@ -129,14 +144,38 @@ class MongoQuery extends BaseQuery
     /**
      * Add a group operation
      */
-    public function group(array $groupBy): static
+    public function group(mixed $groupBy, array $operations = []): static
     {
         $this->useAggregation = true;
+        
+        if (is_string($groupBy)) {
+            $groupStage = [
+                '_id' => '$' . $groupBy
+            ];
+        } elseif (is_array($groupBy)) {
+            if (isset($groupBy['_id'])) {
+                $groupStage = $groupBy;
+            } else {
+                $groupStage = [
+                    '_id' => $groupBy
+                ];
+            }
+        } else {
+            $groupStage = [
+                '_id' => $groupBy
+            ];
+        }
+        
+        // Add operations
+        if (!empty($operations)) {
+            $groupStage = array_merge($groupStage, $operations);
+        }
+        
         $this->aggregationPipeline[] = [
-            '$group' => $groupBy
+            '$group' => $groupStage
         ];
 
-        $this->logOperation('group', ['groupBy' => $groupBy]);
+        $this->logOperation('group', ['groupBy' => $groupBy, 'operations' => $operations]);
 
         return $this;
     }
@@ -149,11 +188,16 @@ class MongoQuery extends BaseQuery
         $this->useAggregation = true;
         $projection = [];
         
-        foreach ($fields as $field) {
-            if (is_string($field)) {
-                $projection[$field] = 1;
-            } elseif (is_array($field)) {
-                $projection = array_merge($projection, $field);
+        foreach ($fields as $key => $value) {
+            if (is_string($key)) {
+                // Associative array: field name => expression
+                $projection[$key] = $value;
+            } elseif (is_string($value)) {
+                // Numeric array: simple field selection
+                $projection[$value] = 1;
+            } elseif (is_array($value)) {
+                // Merge complex expressions
+                $projection = array_merge($projection, $value);
             }
         }
 
@@ -164,6 +208,14 @@ class MongoQuery extends BaseQuery
         $this->logOperation('project', ['fields' => $fields]);
 
         return $this;
+    }
+
+    /**
+     * Define os campos a serem retornados (projeção) - alias para project
+     */
+    public function source(array $fields): static
+    {
+        return $this->project($fields);
     }
 
     /**
@@ -194,6 +246,270 @@ class MongoQuery extends BaseQuery
         $this->logOperation('match', ['conditions' => $conditions]);
 
         return $this;
+    }
+
+    /**
+     * Add a facet operation for multiple aggregations
+     */
+    public function facet(array $facets): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$facet' => $facets
+        ];
+
+        $this->logOperation('facet', ['facets' => $facets]);
+
+        return $this;
+    }
+
+    /**
+     * Override orderBy to not automatically enable aggregation
+     */
+    public function orderBy(string $field, string $direction = 'asc'): static
+    {
+        parent::orderBy($field, $direction);
+        
+        // Do NOT add $sort stage here to avoid duplications when buildAggregationPipeline
+        // Sorting will be translated into aggregation stages at build time from $this->sorts
+
+        return $this;
+    }
+
+    /**
+     * Add a sort operation to aggregation pipeline (aggregation-specific)
+     */
+    public function sortAggregation(array $sort): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$sort' => $sort
+        ];
+
+        $this->logOperation('sortAggregation', ['sort' => $sort]);
+
+        return $this;
+    }
+
+    /**
+     * Override take to not automatically enable aggregation
+     */
+    public function take(int $limit): static
+    {
+        parent::take($limit);
+        
+        // Do NOT add $limit stage here; buildAggregationPipeline will translate limitValue into $limit
+
+        return $this;
+    }
+
+    /**
+     * Override skip to not automatically enable aggregation
+     */
+    public function skip(int $offset): static
+    {
+        parent::skip($offset);
+        
+        // Do NOT add $skip stage here; buildAggregationPipeline will translate offsetValue into $skip
+
+        return $this;
+    }
+
+    /**
+     * Add a limit operation to aggregation pipeline (aggregation-specific)
+     */
+    public function limitAggregation(int $limit): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$limit' => $limit
+        ];
+
+        $this->logOperation('limitAggregation', ['limit' => $limit]);
+
+        return $this;
+    }
+
+    /**
+     * Add a skip operation to aggregation pipeline (aggregation-specific)
+     */
+    public function skipAggregation(int $skip): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$skip' => $skip
+        ];
+
+        $this->logOperation('skipAggregation', ['skip' => $skip]);
+
+        return $this;
+    }
+
+    /**
+     * Add a sample operation
+     */
+    public function sample(int $size): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$sample' => ['size' => $size]
+        ];
+
+        $this->logOperation('sample', ['size' => $size]);
+
+        return $this;
+    }
+
+    /**
+     * Add addToSet operation
+     */
+    public function addToSet(string $field, string $expression): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$addFields' => [
+                $field => ['$addToSet' => $expression]
+            ]
+        ];
+
+        $this->logOperation('addToSet', ['field' => $field, 'expression' => $expression]);
+
+        return $this;
+    }
+
+    /**
+     * Add a geoNear aggregation stage
+     */
+    public function geoNear(array $options): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$geoNear' => $options
+        ];
+
+        $this->logOperation('geoNear', ['options' => $options]);
+
+        return $this;
+    }
+
+    /**
+     * Add fields to the aggregation pipeline
+     */
+    public function addFields(array $fields): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$addFields' => $fields
+        ];
+
+        $this->logOperation('addFields', ['fields' => $fields]);
+
+        return $this;
+    }
+
+    /**
+     * Adiciona uma etapa de agregação ao pipeline do MongoDB
+     * Exemplo: aggregation('total', ['sum' => ['field' => 'price']])
+     */
+    public function aggregation(string $name, array $definition): static
+    {
+        $this->useAggregation = true;
+        $stage = [];
+        // Suporte básico para sum, terms, etc.
+        if (isset($definition['sum'])) {
+            $stage = ['$group' => ['_id' => null, $name => ['$sum' => '$' . $definition['sum']['field']]]];
+        } elseif (isset($definition['terms'])) {
+            $stage = ['$group' => [
+                '_id' => '$' . $definition['terms']['field'],
+                'count' => ['$sum' => 1],
+            ]];
+            if (isset($definition['terms']['size'])) {
+                $stage = [
+                    '$group' => [
+                        '_id' => '$' . $definition['terms']['field'],
+                        'count' => ['$sum' => 1],
+                    ]
+                ];
+                $this->aggregationPipeline[] = $stage;
+                $stage = ['$limit' => $definition['terms']['size']];
+            }
+        } else {
+            // fallback: adiciona como está
+            $stage = $definition;
+        }
+        $this->aggregationPipeline[] = $stage;
+        return $this;
+    }
+
+    /**
+     * Adiciona uma etapa de busca geográfica ($geoWithin/$near) ao pipeline do MongoDB
+     * Exemplo: geoDistance('location', 'lat,long', '5km')
+     */
+    public function geoDistance(string $field, string $latlon, string $distance): static
+    {
+        $this->useAggregation = true;
+        // Converte latlon para array [lat, lon]
+        $coords = explode(',', $latlon);
+        $lat = (float) trim($coords[0]);
+        $lon = (float) trim($coords[1]);
+        // Converte '5km' para metros
+        $distMeters = (float) $distance * (stripos($distance, 'km') !== false ? 1000 : 1);
+        $this->aggregationPipeline[] = [
+            '$geoNear' => [
+                'near' => ['type' => 'Point', 'coordinates' => [$lon, $lat]],
+                'distanceField' => 'dist.calculated',
+                'maxDistance' => $distMeters,
+                'spherical' => true,
+                'key' => $field
+            ]
+        ];
+        return $this;
+    }
+
+    /**
+     * Adiciona busca textual (full-text search) ao pipeline do MongoDB
+     * Exemplo: search('termo', ['campo1', 'campo2'])
+     */
+    public function search(string $term, array $fields = []): static
+    {
+        $this->useAggregation = true;
+        // MongoDB full-text search usa $text
+        $this->aggregationPipeline[] = [
+            '$match' => [
+                '$text' => [
+                    '$search' => $term
+                ]
+            ]
+        ];
+        return $this;
+    }
+
+    /**
+     * Adiciona filtro por expressão regular ao pipeline do MongoDB
+     * Exemplo: regexp('campo', 'regex')
+     */
+    public function regexp(string $field, string $pattern): static
+    {
+        $this->useAggregation = true;
+        $this->aggregationPipeline[] = [
+            '$match' => [
+                $field => ['$regex' => $pattern]
+            ]
+        ];
+        return $this;
+    }
+
+    /**
+     * Gera a query final (pipeline ou find) para MongoDB
+     * Compatível com a interface do ElasticQuery (build())
+     */
+    public function build(): array
+    {
+        // Decide se é pipeline de agregação ou find simples
+        if ($this->useAggregation || !empty($this->aggregationPipeline)) {
+            return $this->buildAggregationPipeline();
+        }
+        return $this->buildFindQuery();
     }
 
     /**
@@ -228,18 +544,48 @@ class MongoQuery extends BaseQuery
         $pipeline = array_merge($pipeline, $this->aggregationPipeline);
 
         // Add sort stage
+        // Only add a $sort stage if the pipeline does not already contain one
         if (!empty($this->sorts)) {
-            $pipeline[] = ['$sort' => $this->buildMongoSort()];
+            $hasSort = false;
+            foreach ($pipeline as $stage) {
+                if (is_array($stage) && array_key_first($stage) === '$sort') {
+                    $hasSort = true;
+                    break;
+                }
+            }
+            if (!$hasSort) {
+                $pipeline[] = ['$sort' => $this->buildMongoSort()];
+            }
         }
 
         // Add skip stage
+        // Only add $skip if not already present in custom pipeline
         if ($this->offsetValue !== null) {
-            $pipeline[] = ['$skip' => $this->offsetValue];
+            $hasSkip = false;
+            foreach ($pipeline as $stage) {
+                if (is_array($stage) && array_key_first($stage) === '$skip') {
+                    $hasSkip = true;
+                    break;
+                }
+            }
+            if (!$hasSkip) {
+                $pipeline[] = ['$skip' => $this->offsetValue];
+            }
         }
 
         // Add limit stage
+        // Only add $limit if not already present in custom pipeline
         if ($this->limitValue !== null) {
-            $pipeline[] = ['$limit' => $this->limitValue];
+            $hasLimit = false;
+            foreach ($pipeline as $stage) {
+                if (is_array($stage) && array_key_first($stage) === '$limit') {
+                    $hasLimit = true;
+                    break;
+                }
+            }
+            if (!$hasLimit) {
+                $pipeline[] = ['$limit' => $this->limitValue];
+            }
         }
 
         return $pipeline;
@@ -303,7 +649,44 @@ class MongoQuery extends BaseQuery
             if ($where['boolean'] === 'or') {
                 $orConditions[] = $condition;
             } else {
-                $filter = array_merge($filter, $condition);
+                // Merge condition into filter, preserving multiple operators for same field
+                foreach ($condition as $key => $val) {
+                    // If key is a field name
+                    if (str_starts_with($key, '$')) {
+                        // Top-level operator (e.g. $or). Merge or set.
+                        if (!isset($filter[$key])) {
+                            $filter[$key] = $val;
+                        } else {
+                            // merge arrays
+                            if (is_array($filter[$key]) && is_array($val)) {
+                                $filter[$key] = array_merge($filter[$key], $val);
+                            } else {
+                                $filter[$key] = $val;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Field-level merging
+                    if (!isset($filter[$key])) {
+                        $filter[$key] = $val;
+                        continue;
+                    }
+
+                    // If existing is scalar (equality), convert to operator form
+                    if (!is_array($filter[$key]) && is_array($val)) {
+                        $filter[$key] = array_merge(['$eq' => $filter[$key]], $val);
+                        continue;
+                    }
+
+                    if (is_array($filter[$key]) && is_array($val)) {
+                        $filter[$key] = array_merge($filter[$key], $val);
+                        continue;
+                    }
+
+                    // Fallback: overwrite
+                    $filter[$key] = $val;
+                }
             }
         }
 
@@ -348,6 +731,19 @@ class MongoQuery extends BaseQuery
             'null' => [$field => null],
             'not_null' => [$field => ['$ne' => null]],
             'like' => [$field => ['$regex' => str_replace('%', '.*', $value), '$options' => 'i']],
+            
+            // Advanced MongoDB operators
+            'regex' => [$field => ['$regex' => $value]],
+            'size' => [$field => ['$size' => $value]],
+            'exists' => [$field => ['$exists' => $value]],
+            'type' => [$field => ['$type' => $value]],
+            'all' => [$field => ['$all' => $value]],
+            'elemMatch' => [$field => ['$elemMatch' => $value]],
+            'mod' => [$field => ['$mod' => $value]],
+            'near' => [$field => ['$near' => $value]],
+            'geoWithin' => [$field => ['$geoWithin' => $value]],
+            'geoIntersects' => [$field => ['$geoIntersects' => $value]],
+            
             default => [$field => $value]
         };
     }
@@ -389,9 +785,19 @@ class MongoQuery extends BaseQuery
      */
     public function near(string $field, array $geometry, array $options = []): static
     {
-        $nearQuery = array_merge([
-            'near' => $geometry
-        ], $options);
+        // Build a valid MongoDB $near query. If geometry is GeoJSON (has type/coordinates),
+        // use $geometry; otherwise assume legacy coordinate array.
+        $nearQuery = [];
+        if (isset($geometry['type']) && isset($geometry['coordinates'])) {
+            $nearQuery['$geometry'] = $geometry;
+        } else {
+            // legacy coordinates
+            $nearQuery = $geometry;
+        }
+
+        if (isset($options['maxDistance'])) {
+            $nearQuery['$maxDistance'] = $options['maxDistance'];
+        }
 
         $this->match([$field => ['$near' => $nearQuery]]);
 
@@ -423,5 +829,102 @@ class MongoQuery extends BaseQuery
         ]);
 
         return $this;
+    }
+
+    /**
+     * Marca campos para destaque (highlight) - simulado para MongoDB
+     */
+    public function highlight(string|array $fields): static
+    {
+        // MongoDB não tem highlight nativo, mas podemos marcar para pós-processamento
+        $this->highlightFields = (array) $fields;
+        return $this;
+    }
+
+    /**
+     * Define timeout para a query (simulado)
+     */
+    public function timeout(int $ms): static
+    {
+        $this->timeoutMs = $ms;
+        return $this;
+    }
+
+    /**
+     * Executa callback se condição for verdadeira
+     */
+    public function when($condition, callable $callback): static
+    {
+        if ($condition) {
+            $callback($this);
+        }
+        return $this;
+    }
+
+    /**
+     * Executa callback se condição for falsa
+     */
+    public function unless($condition, callable $callback): static
+    {
+        if (!$condition) {
+            $callback($this);
+        }
+        return $this;
+    }
+
+    /**
+     * Simula análise de query (para DX)
+     */
+    public function analyze(): static
+    {
+        $this->analyzed = true;
+        return $this;
+    }
+
+    /**
+     * Simula ativação de cache para a query
+     */
+    public function cache(bool $enable = true): static
+    {
+        $this->cacheEnabled = $enable;
+        return $this;
+    }
+
+    /**
+     * Escopo predefinido: apenas documentos ativos
+     */
+    public function active(): static
+    {
+        return $this->where('status', 'active');
+    }
+
+    /**
+     * Escopo predefinido: apenas documentos publicados
+     */
+    public function published(): static
+    {
+        return $this->where('published', true);
+    }
+
+    /**
+     * Escopo predefinido: documentos recentes (exemplo: últimos 30 dias)
+     */
+    public function recent(): static
+    {
+        $date = date('Y-m-d', strtotime('-30 days'));
+        return $this->where('created_at', '>=', $date);
+    }
+
+    /**
+     * Standardized protected buildQuery adapter (compatibility)
+     *
+     * ElasticQuery exposes a protected buildQuery(); provide the same
+     * adapter on MongoQuery so both backends follow the same internal API.
+     * This method delegates to the existing public build() to keep behaviour
+     * identical to the current implementation.
+     */
+    protected function buildQuery(): array
+    {
+        return $this->build();
     }
 }

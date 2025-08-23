@@ -3,5 +3,17 @@
 
 CATEGORY=${1:-quick}
 
+if [[ "$CATEGORY" == "mongo" ]]; then
+  echo "🚀 QueryCraft - Teste (mongo)"
+  php tests/Unit/MongoDB/RunAllMongoDBTests.php
+  exit $?
+fi
+
+if [[ "$CATEGORY" == "elastic" ]]; then
+  echo "🚀 QueryCraft - Teste (elastic)"
+  php t.php elastic
+  exit $?
+fi
+
 echo "🚀 QueryCraft - Teste ($CATEGORY)"
 php t.php "$CATEGORY"

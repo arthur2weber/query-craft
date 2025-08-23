@@ -11,10 +11,10 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Aggregations
  */
 
-require_once __DIR__ . '/../../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../../vendor/autoload.php';
+require_once __DIR__ . '/../../../TestHelpers.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
 echo "🧪 AGGREGATIONS: Aggregation Tests\n";
 echo str_repeat("=", 40) . "\n\n";

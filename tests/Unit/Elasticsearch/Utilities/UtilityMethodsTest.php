@@ -16,10 +16,10 @@
  * @package Arthur2weber\QueryCraft\Tests\Unit\Utilities
  */
 
-require_once __DIR__ . '/../../../../src/ElasticQueryInterface.php';
-require_once __DIR__ . '/../../../../src/ElasticQuery.php';
+require_once __DIR__ . '/../../../../vendor/autoload.php';
+require_once __DIR__ . '/../../../TestHelpers.php';
 
-use Arthur2weber\QueryCraft\ElasticQuery;
+use Arthur2weber\QueryCraft\Query\ElasticQuery as ElasticQuery;
 
 echo "🧪 UTILITIES: Utility Methods Tests\n";
 echo str_repeat("=", 45) . "\n\n";
