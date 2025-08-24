@@ -51,9 +51,18 @@ abstract class BaseQuery
      */
     public function where(string $field, mixed $operator, mixed $value = null): static
     {
+        // If only two args were passed, decide whether the second arg is an operator
+        // (e.g. 'null', 'not_null') or a value. Previously we always treated it as
+        // a value when $value === null which made calls like where('j', 'null')
+        // behave incorrectly. Now we preserve it as an operator for a small set of
+        // operator-only tokens.
         if ($value === null) {
-            $value = $operator;
-            $operator = '=';
+            $operatorLower = is_string($operator) ? strtolower($operator) : null;
+            $operatorOnlyTokens = ['null', 'not_null'];
+            if (!in_array($operatorLower, $operatorOnlyTokens, true)) {
+                $value = $operator;
+                $operator = '=';
+            }
         }
 
         $this->validateFieldName($field);
@@ -239,9 +248,15 @@ abstract class BaseQuery
      */
     public function orWhere(string $field, mixed $operator, mixed $value = null): static
     {
+        // Same behavior as where(): allow operator-only tokens to be passed as the
+        // second argument without being interpreted as the value.
         if ($value === null) {
-            $value = $operator;
-            $operator = '=';
+            $operatorLower = is_string($operator) ? strtolower($operator) : null;
+            $operatorOnlyTokens = ['null', 'not_null'];
+            if (!in_array($operatorLower, $operatorOnlyTokens, true)) {
+                $value = $operator;
+                $operator = '=';
+            }
         }
 
         $this->validateFieldName($field);

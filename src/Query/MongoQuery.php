@@ -23,6 +23,105 @@ class MongoQuery extends BaseQuery
     protected array $highlightFields = [];
     protected ?int $timeoutMs = null;
 
+    // Small clause cache to mirror ElasticQuery pattern (helps reuse identical stage fragments)
+    protected static array $clauseCache = [];
+    protected static int $cacheSize = 0;
+    protected static int $maxCacheSize = 100;
+
+    protected static function cacheClause(string $key, array $clause): void {
+        if (self::$cacheSize >= self::$maxCacheSize) {
+            $keysToRemove = array_slice(array_keys(self::$clauseCache), 0, 20);
+            foreach ($keysToRemove as $keyToRemove) {
+                unset(self::$clauseCache[$keyToRemove]);
+                self::$cacheSize--;
+            }
+        }
+        self::$clauseCache[$key] = $clause;
+        self::$cacheSize++;
+    }
+
+    // Mongo-style clause helpers (static) - modeled after ElasticQuery helpers but returning Mongo structures
+    public static function termClause(string $field, mixed $value): array {
+        $cacheKey = "term:{$field}:" . (is_scalar($value) ? (string)$value : md5(serialize($value)));
+        if (isset(self::$clauseCache[$cacheKey])) {
+            return self::$clauseCache[$cacheKey];
+        }
+        $clause = [$field => $value];
+        self::cacheClause($cacheKey, $clause);
+        return $clause;
+    }
+
+    public static function rangeClause(string $field, string $operator, mixed $value): array {
+        $map = [
+            '>' => '$gt', 'gt' => '$gt',
+            '>=' => '$gte', 'gte' => '$gte',
+            '<' => '$lt', 'lt' => '$lt',
+            '<=' => '$lte', 'lte' => '$lte'
+        ];
+        $op = $map[$operator] ?? ($map[strtolower($operator)] ?? '$eq');
+        return [$field => [$op => $value]];
+    }
+
+    public static function existsClause(string $field): array {
+        return [$field => ['$exists' => true]];
+    }
+
+    public static function termsClause(string $field, array $values): array {
+        return [$field => ['$in' => $values]];
+    }
+
+    public static function notTermsClause(string $field, array $values): array {
+        return ['$or' => [[$field => ['$nin' => $values]]]];
+    }
+
+    public static function regexClause(string $field, string $pattern, string $options = ''): array {
+        $clause = [$field => ['$regex' => $pattern]];
+        if ($options !== '') {
+            $clause[$field]['$options'] = $options;
+        }
+        return $clause;
+    }
+
+    public static function matchStage(array $conditions): array {
+        return ['$match' => $conditions];
+    }
+
+    // Additional helpers to further mirror ElasticQuery-style clause API
+    public static function matchClause(string $field, mixed $value): array {
+        return [$field => $value];
+    }
+
+    public static function textClause(string $term, array $options = []): array {
+        return ['$text' => array_merge(['$search' => $term], $options)];
+    }
+
+    // Additional advanced helpers (Mongo equivalents for Elastic-like helpers)
+    public static function prefixClause(string $field, string $prefix): array {
+        // matches values starting with the given prefix
+        $pattern = '^' . preg_quote($prefix, '/') . '.*';
+        return [$field => ['$regex' => $pattern]];
+    }
+
+    public static function wildcardClause(string $field, string $pattern): array {
+        // Support simple wildcard patterns where '*' => '.*' and '?' => '.'
+        // Escape regex-special chars except '*' and '?'
+        $escaped = preg_quote($pattern, '/');
+        $escaped = str_replace(['\*', '\?'], ['*', '?'], $escaped);
+        $regex = '^' . str_replace(['*', '?'], ['.*', '.'], $escaped) . '$';
+        return [$field => ['$regex' => $regex]];
+    }
+
+    public static function termBoost(string $field, mixed $value, float $boost = 1.0): array {
+        // MongoDB does not support per-clause boosting natively; keep structure compatible
+        // by returning the same clause as termClause so higher-level code can interpret boost.
+        return self::termClause($field, $value);
+    }
+
+    public static function matchBoost(array $conditions, float $boost = 1.0): array {
+        // Wrapper that returns a $match stage; boost is informational and ignored by Mongo engine here
+        return self::matchStage($conditions);
+    }
+
     /**
      * Implementation of the get method from BaseQuery
      */
@@ -239,9 +338,7 @@ class MongoQuery extends BaseQuery
     public function match(array $conditions): static
     {
         $this->useAggregation = true;
-        $this->aggregationPipeline[] = [
-            '$match' => $conditions
-        ];
+        $this->aggregationPipeline[] = self::matchStage($conditions);
 
         $this->logOperation('match', ['conditions' => $conditions]);
 
@@ -474,13 +571,7 @@ class MongoQuery extends BaseQuery
     {
         $this->useAggregation = true;
         // MongoDB full-text search usa $text
-        $this->aggregationPipeline[] = [
-            '$match' => [
-                '$text' => [
-                    '$search' => $term
-                ]
-            ]
-        ];
+        $this->aggregationPipeline[] = self::matchStage(self::textClause($term, []));
         return $this;
     }
 
@@ -491,11 +582,7 @@ class MongoQuery extends BaseQuery
     public function regexp(string $field, string $pattern): static
     {
         $this->useAggregation = true;
-        $this->aggregationPipeline[] = [
-            '$match' => [
-                $field => ['$regex' => $pattern]
-            ]
-        ];
+        $this->aggregationPipeline[] = self::matchStage(self::regexClause($field, $pattern));
         return $this;
     }
 
@@ -815,11 +902,18 @@ class MongoQuery extends BaseQuery
      */
     public function within(string $field, array $geometry): static
     {
+        // Accept either GeoJSON geometry ({ type, coordinates }) or legacy envelope/shape
+        $geo = [];
+        if (isset($geometry['type']) && isset($geometry['coordinates'])) {
+            $geo = ['$geometry' => $geometry];
+        } else {
+            // For legacy shapes, embed directly under $geometry if not already wrapped
+            $geo = ['$geometry' => $geometry];
+        }
+
         $this->match([
             $field => [
-                '$geoWithin' => [
-                    '$geometry' => $geometry
-                ]
+                '$geoWithin' => $geo
             ]
         ]);
 
