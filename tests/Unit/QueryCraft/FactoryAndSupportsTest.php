@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Arthur2weber\QueryCraft\QueryCraft;
 
-class QueryCraftExtrasTest extends TestCase
+class FactoryAndSupportsTest extends TestCase
 {
     public function testForThrowsOnUnsupportedType()
     {

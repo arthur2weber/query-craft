@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
-class ElasticQueryRemainingCoverageExtraTest extends TestCase
+class ElasticQueryShouldTest extends TestCase
 {
     public function testShouldSetsMinimumShouldMatch()
     {
@@ -13,7 +13,10 @@ class ElasticQueryRemainingCoverageExtraTest extends TestCase
         $this->assertArrayHasKey('minimum_should_match', $built['query']['bool']);
         $this->assertEquals(2, $built['query']['bool']['minimum_should_match']);
     }
+}
 
+class ElasticQueryWhereTest extends TestCase
+{
     public function testWhereUnsupportedOperatorThrows()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -43,7 +46,10 @@ class ElasticQueryRemainingCoverageExtraTest extends TestCase
         $this->assertArrayHasKey('filter', $built['query']['bool']);
         $this->assertCount(2, $built['query']['bool']['filter']);
     }
+}
 
+class ElasticQueryPaginateTest extends TestCase
+{
     public function testPaginateInvalidPageThrows()
     {
         $this->expectException(\InvalidArgumentException::class);
