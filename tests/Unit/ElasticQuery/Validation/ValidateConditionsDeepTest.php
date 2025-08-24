@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\ElasticQuery;
 
-require_once __DIR__ . '/TestableElasticQuery.php';
+require_once __DIR__ . '/../Utility/TestableElasticQuery.php';
 
 use PHPUnit\Framework\TestCase;
 

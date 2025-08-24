@@ -1,8 +1,8 @@
 <?php
 
-namespace Tests\Unit\ElasticQuery;
+namespace Tests\Unit\ElasticQuery\GeoLocation;
 
-require_once __DIR__ . '/TestableElasticQuery.php';
+require_once __DIR__ . '/../Utility/TestableElasticQuery.php';
 
 use PHPUnit\Framework\TestCase;
 

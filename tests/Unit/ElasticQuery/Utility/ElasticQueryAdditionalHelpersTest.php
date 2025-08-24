@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\ElasticQuery;
+namespace Tests\Unit\ElasticQuery\Utility;
 
 use PHPUnit\Framework\TestCase;
 

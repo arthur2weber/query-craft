@@ -1,6 +1,10 @@
 <?php
 
+namespace Tests\Unit\ElasticQuery\Utility;
+
 use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/TestableElasticQuery.php';
 
 class ElasticQueryHelpersTest extends TestCase
 {

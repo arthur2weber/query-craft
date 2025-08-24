@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Arthur2weber\QueryCraft\Query\ElasticQuery;
 
-class ElasticQueryValidationTest extends TestCase
+class ElasticQueryTopLevelValidationTest extends TestCase
 {
     public function testRangeValidation()
     {

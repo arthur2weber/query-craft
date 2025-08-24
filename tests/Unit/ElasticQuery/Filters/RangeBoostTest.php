@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\Unit\ElasticQuery;
+namespace Tests\Unit\ElasticQuery\Filters;
 
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../TestableElasticQuery.php';
+require_once __DIR__ . '/../Utility/TestableElasticQuery.php';
 
 class RangeBoostTest extends TestCase
 {

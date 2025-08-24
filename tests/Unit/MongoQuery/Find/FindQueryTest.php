@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 use Arthur2weber\QueryCraft\Query\MongoQuery;
 
-class MongoQueryFindQueryTest extends TestCase
+class MongoQueryTopLevelFindQueryTest extends TestCase
 {
     public function testBuildFindQueryPagination()
     {

@@ -1,5 +1,9 @@
 <?php
 
+namespace Tests\Unit\ElasticQuery\Filters;
+
+require_once __DIR__ . '/../Utility/TestableElasticQuery.php';
+
 use PHPUnit\Framework\TestCase;
 use Arthur2weber\QueryCraft\Query\ElasticQuery;
 

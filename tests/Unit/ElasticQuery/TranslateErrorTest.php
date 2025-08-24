@@ -2,9 +2,10 @@
 
 namespace Tests\Unit\ElasticQuery;
 
-require_once __DIR__ . '/TestableElasticQuery.php';
-
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\ElasticQuery\Utility\TestableElasticQuery;
+
+require_once __DIR__ . '/Utility/TestableElasticQuery.php';
 
 class TranslateErrorTest extends TestCase
 {

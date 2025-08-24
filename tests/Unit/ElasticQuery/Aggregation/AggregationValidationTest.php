@@ -4,7 +4,7 @@ namespace Tests\Unit\ElasticQuery\Aggregation;
 
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../TestableElasticQuery.php';
+require_once __DIR__ . '/../Utility/TestableElasticQuery.php';
 
 class AggregationValidationTest extends TestCase
 {
